@@ -25,7 +25,7 @@ ANSWER_MSG_FRST_PART = "Do you want to find a playlists for the query"
 
 @DP.message()
 async def answer_handler(message: Message) -> None:
-    if message.chat.type == 'private':
+    if message.chat.type == 'private' and message.text:
         query = message.text
         print(f"From user {message.from_user.full_name} with chat id - {message.chat.id}: '{query}'") # Information for host
         b_yes = InlineKeyboardButton(text = "Yes", callback_data = "yes")
