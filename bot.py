@@ -14,7 +14,7 @@ TOKEN = "BOT TOKEN" # What is a token and how to get it: https://core.telegram.o
 BOT = Bot(token = TOKEN, default = DefaultBotProperties(parse_mode=ParseMode.HTML))
 DP = Dispatcher()
 
-API_KEY = "YOUTUBE API KEY" # What is an API key and how to get it: https://developers.google.com/youtube/v3/getting-started
+API_KEY = "API KEY" # What is an API key and how to get it: https://developers.google.com/youtube/v3/getting-started
 YOUTUBE = Youtube(api_key = API_KEY)
 
 @DP.message(CommandStart())
@@ -28,8 +28,8 @@ async def answer_handler(message: Message) -> None:
     if message.chat.type == 'private' and message.text:
         query = message.text
         print(f"From user {message.from_user.full_name} with chat id - {message.chat.id}: '{query}'") # Information for host
-        b_yes = InlineKeyboardButton(text = "Yes", callback_data = "yes")
-        b_no = InlineKeyboardButton(text = "No", callback_data = "no")
+        b_yes = InlineKeyboardButton(text = "Yes", callback_data = f"show,{message.chat.id},{message.message_id}")
+        b_no = InlineKeyboardButton(text = "No", callback_data = f"cancel,{message.chat.id},{message.message_id}")
         keyboard = InlineKeyboardMarkup(inline_keyboard = [[b_yes, b_no]])
         await message.answer(text = html.bold(ANSWER_MSG_FRST_PART) + html.italic(f' "{query}" ') + html.bold("?"), reply_markup = keyboard)
 
@@ -58,7 +58,12 @@ async def show_results(playlists_info: list, call: CallbackQuery) -> None:
     
 @DP.callback_query()
 async def callback_handler(call: CallbackQuery) -> None:
-    if call.data == "yes":
+    call_data = call.data.split(',') # Getting data from the call
+    action = call_data[0]
+    chat_id = int(call_data[1])
+    message_to_delete_id = int(call_data[2])
+    await BOT.delete_message(chat_id = chat_id, message_id = message_to_delete_id)
+    if action == "show":
         query = get_query(message = call.message)
         await call.message.edit_text(text = html.bold(ANSWER_MSG_FRST_PART) + html.italic(f' "{query}" ') + html.bold("?") + html.bold("\n\nPlease, wait..."))
         playlists = YOUTUBE.search_playlists(query = query)
@@ -76,7 +81,7 @@ async def callback_handler(call: CallbackQuery) -> None:
                     await call.message.answer(text = html.bold("Something is wrong, try again later!"))
                     print(f"Error: {e}")
         await call.message.edit_text(text = html.bold(ANSWER_MSG_FRST_PART) + html.italic(f' "{query}" ') + html.bold("?") + html.bold("\n\nResults for your query below..."))
-    elif call.data == "no":
+    elif action == "cancel":
         await call.message.delete()
     await call.answer()
 
